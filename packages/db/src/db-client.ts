@@ -117,11 +117,22 @@ export class CollectionClient<T extends Record<string, any> = Record<string, any
       const now = Date.now();
 
       await this.table.bulkPut(
-        matches.map((doc) => ({
-          ...doc,
-          ...(spec.$set ?? {}),
-          _updatedAt: now,
-        }))
+        matches.map((doc) => {
+          const updated = {
+            ...doc,
+            ...(spec.$set ?? {}),
+            _updatedAt: now,
+          };
+
+          // Handle $unset — remove specified fields from the document
+          if (spec.$unset) {
+            for (const key of Object.keys(spec.$unset)) {
+              delete (updated as Record<string, any>)[key];
+            }
+          }
+
+          return updated;
+        })
       );
 
       return matches.length;
